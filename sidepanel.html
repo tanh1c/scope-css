@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScopeCSS</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="logo">ScopeCSS</h1>
+      <p class="subtitle">Pick any element &rarr; copy its styles</p>
+    </header>
+
+    <div class="instructions" id="instructions">
+      <p>Press <kbd>Ctrl+Shift+S</kbd> or click the extension icon, then click any element.</p>
+    </div>
+
+    <div class="tabs" id="tabs" style="display: none;">
+      <button class="tab active" data-tab="css">CSS</button>
+      <button class="tab" data-tab="html">HTML</button>
+    </div>
+
+    <div class="output-wrapper" id="outputWrapper" style="display: none;">
+      <pre class="output" id="output"></pre>
+      <div class="copy-btn-wrap">
+        <button class="copy-btn" id="copyBtn">Copy</button>
+      </div>
+    </div>
+
+    <div class="warning" id="warning" style="display: none;"></div>
+
+    <div class="toast" id="toast">Copied!</div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
