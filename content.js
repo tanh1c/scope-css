@@ -4,29 +4,20 @@
 // PART 1: CSS Extraction Engine
 // ==========================================
 
-// Shorthand CSS properties to skip (longhands are kept)
-const SKIP_PROPS = new Set([
-  "font", "background", "border", "outline", "transition",
-  "animation",
-  "border-top", "border-right", "border-bottom", "border-left",
-  "border-width", "border-style", "border-color",
-  "border-image",
-  "margin", "padding",
-  "list-style",
-  "grid", "grid-template", "grid-area", "grid-column", "grid-row",
-  "flex", "flex-flow",
-  "place-content", "place-items", "place-self",
-  "gap", "overflow", "text-decoration", "columns",
-]);
+// Properties database — generated from mdn-data (651 properties, 87 shorthands, 416 initial values)
+const PROPS_DB = (() => {
+  try {
+    return require('./src/properties.json');
+  } catch (e) {
+    // Graceful fallback if properties.json is not available
+    console.warn('[ScopeCSS] properties.json not found, using empty defaults');
+    return { shorthands: [], initialValues: {}, cssWideKeywords: [] };
+  }
+})();
 
-// Default values to filter out (noise reduction)
-const DEFAULT_VALS = new Set([
-  "normal", "none", "auto", "0px", "0s", "0", "start",
-  "stretch", "baseline", "visible", "static", "flat",
-  "running", "ease", "1", "separate", "collapse",
-  "content-box", "border-box", "currentcolor",
-  "medium", "repeat", "scroll", "transparent",
-]);
+const SHORTHAND_SET = new Set(PROPS_DB.shorthands);
+const INITIAL_VALUES = PROPS_DB.initialValues;
+const CSS_WIDE_KEYWORDS = new Set(PROPS_DB.cssWideKeywords);
 
 /**
  * Collect all CSS custom properties (variables) from :root and ancestor elements.
@@ -137,20 +128,51 @@ function buildSelector(node) {
 }
 
 /**
+ * Check if a property is a shorthand (css-tree data).
+ */
+function isShorthand(prop) {
+  return SHORTHAND_SET.has(prop);
+}
+
+/**
+ * Get the initial (default) value for a property (MDN data).
+ */
+function getInitial(prop) {
+  return INITIAL_VALUES[prop] || null;
+}
+
+/**
+ * Check if a value is a CSS-wide keyword.
+ */
+function isCSSWideKeyword(val) {
+  return CSS_WIDE_KEYWORDS.has(val);
+}
+
+/**
  * Extract meaningful computed styles from a CSSStyleDeclaration.
  * Returns array of { prop, value } pairs.
+ * Filters out: shorthand properties, CSS-wide keywords, values equal to initial.
  */
 function extractStyles(computed, cssVars) {
   const styles = [];
   for (const prop of computed) {
-    if (SKIP_PROPS.has(prop)) continue;
+    // Skip shorthand properties — longhands are kept (e.g., margin-top, border-width)
+    if (isShorthand(prop)) continue;
+    // Skip vendor-prefixed properties not in mdn-data
     if (prop.startsWith("-webkit-") || prop.startsWith("-moz-")) continue;
 
-    let val = computed.getPropertyValue(prop).trim();
-    if (!val || DEFAULT_VALS.has(val)) continue;
+    const val = computed.getPropertyValue(prop).trim();
+    if (!val) continue;
 
-    val = resolveVars(val, cssVars);
-    styles.push({ prop, value: val });
+    // Skip CSS-wide keywords (initial, inherit, unset, etc.)
+    if (isCSSWideKeyword(val)) continue;
+
+    // Skip values that equal the property's initial value
+    const initial = getInitial(prop);
+    if (initial && val === initial) continue;
+
+    const resolved = resolveVars(val, cssVars);
+    styles.push({ prop, value: resolved });
   }
   return styles;
 }
